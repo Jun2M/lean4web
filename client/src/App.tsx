@@ -51,6 +51,9 @@ function App() {
   // the user data
   const [code, setCode] = useState<string>('')
   const [project, setProject] = useState<string>(undefined)
+  const [currentFile, setCurrentFile] = useState<string | null>(null)
+  const currentDir = currentFile ? currentFile.replace(/\/?[^\/]*$/, '') : ''
+  const [serverCode, setServerCode] = useState<string | null>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [codeFromUrl, setCodeFromUrl] = useState<string>('')
 
@@ -74,12 +77,21 @@ function App() {
     }
 
     if (args.url) {setUrl(lookupUrl(decodeURIComponent(args.url)))}
+    // Optional: allow selecting a file path inside the project via ?file=...
+    const searchParams = new URLSearchParams(window.location.search);
+    const qpFile = searchParams.get('file')
+    if (qpFile) { setCurrentFile(qpFile) }
 
-    // if no project provided, use default
-    let project = args.project || 'MathlibDemo'
+    // Determine project: prefer hash, then query param, then infer from file, else default
+    let proj = args.project || searchParams.get('project') || undefined
+    if (!proj && qpFile) {
+      const m = qpFile.match(/^([^\/]+)/)
+      if (m) { proj = m[1] }
+    }
+    if (!proj) { proj = 'MathlibDemo' }
 
-    console.log(`[Lean4web] Setting project to ${project}`)
-    setProject(project)
+    console.log(`[Lean4web] Setting project to ${proj}`)
+    setProject(proj)
   }, [])
 
   // Load preferences from store in the beginning
@@ -191,7 +203,10 @@ function App() {
     _leanMonaco.setInfoviewElement(infoviewRef.current!)
     ;(async () => {
         await _leanMonaco.start(options)
-        await leanMonacoEditor.start(editorRef.current!, path.join(project, `${project}.lean`), code)
+        const modelPath = currentFile
+          ? (currentFile.startsWith(project + '/') ? currentFile : path.join(project, currentFile))
+          : path.join(project, `${project}.lean`)
+        await leanMonacoEditor.start(editorRef.current!, modelPath, code)
 
         setEditor(leanMonacoEditor.editor)
         setLeanMonaco(_leanMonaco)
@@ -273,7 +288,7 @@ function App() {
       leanMonacoEditor.dispose()
       _leanMonaco.dispose()
     }
-  }, [loaded, project, preferences, options, infoviewRef, editorRef])
+  }, [loaded, project, currentFile, preferences, options, infoviewRef, editorRef])
 
   // Load content from source URL.
   // Once the editor is loaded, this reads the content of any provided `url=` in the URL and
@@ -295,6 +310,19 @@ function App() {
     })
   }, [url, editor])
 
+  // Load content from a local file on the server if provided (?file=...)
+  useEffect(() => {
+    if (!editor || !project || !currentFile) { return }
+    console.debug(`[Lean4web] Loading local file ${currentFile} in project ${project}`)
+    fetch(`/api/file?project=${encodeURIComponent(project)}&file=${encodeURIComponent(currentFile)}`)
+      .then((response) => {
+        if (!response.ok) { throw new Error(`HTTP ${response.status}`) }
+        return response.text()
+      })
+      .then((src) => { setServerCode(src); setContent(src) })
+      .catch(err => console.error(`[Lean4web] Failed to load local file: ${err}`))
+  }, [editor, project, currentFile])
+
   // Sets the editors content to the content from the loaded URL.
   // As described above, this requires the editor is loaded, but we do not want to
   // trigger this effect every time the editor is reloaded (e.g. config change) as otherwise
@@ -315,7 +343,15 @@ function App() {
       code: string | null
       codez: string | null
     }
-    if (code === "") {
+    if (currentFile) {
+      // When editing a local file, keep URL compact; don't mirror file content in hash
+      args = {
+        project: _project,
+        url: null,
+        code: null,
+        codez: null
+      }
+    } else if (code === "") {
       args = {
         project: _project,
         url: null,
@@ -361,7 +397,26 @@ function App() {
       }
     }
     history.replaceState(undefined, undefined!, formatArgs(args))
-  }, [editor, project, code, codeFromUrl])
+  }, [editor, project, currentFile, code, codeFromUrl])
+
+  // Debounced autosave to local server file when editing a local file
+  useEffect(() => {
+    if (!project || !currentFile) { return }
+    // Avoid overwriting with empty content on refresh before initial fetch
+    if (serverCode === null && code.trim() === '') { return }
+    // Save only if content changed
+    if (serverCode !== null && code === serverCode) { return }
+    const timeout = setTimeout(() => {
+      fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project, file: currentFile, content: code })
+      }).then(res => {
+        if (res.ok) { setServerCode(code) }
+      }).catch(err => console.error(`[Lean4web] Autosave failed: ${err}`))
+    }, 500)
+    return () => { clearTimeout(timeout) }
+  }, [project, currentFile, code, serverCode])
 
   // Disable monaco context menu outside the editor
   useEffect(() => {
@@ -381,6 +436,12 @@ function App() {
     <div className="app monaco-editor">
       <nav>
         <LeanLogo />
+        { currentFile &&
+          <div className="current-file" title={`${project}/${currentFile.startsWith(project + '/') ? currentFile.slice(project.length + 1) : currentFile}`}>
+            <span className="current-file-label">File:</span>
+            <span className="current-file-path">{currentFile}</span>
+          </div>
+        }
         <Menu
           code={code}
           setContent={setContent}
@@ -391,6 +452,7 @@ function App() {
           restart={leanMonaco?.restart}
           codeMirror={codeMirror}
           setCodeMirror={setCodeMirror}
+          initialDir={currentDir}
           />
       </nav>
       <Split className={`editor ${ dragging? 'dragging':''}`}

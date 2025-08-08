@@ -15,6 +15,8 @@ const lean4webConfig : LeanWebConfig = {
           "name": "Rational" }]},
     { "folder": "Stable",
       "name": "Stable Lean" },
+    { "folder": "Matroid",
+      "name": "Matroid Repo"},
   ],
   "serverCountry": null,
   "contactDetails": null,

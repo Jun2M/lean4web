@@ -11,6 +11,7 @@ import ImpressumPopup from './Popups/Impressum'
 import ToolsPopup from './Popups/Tools'
 import LoadUrlPopup from './Popups/LoadUrl'
 import LoadZulipPopup from './Popups/LoadZulip'
+import OpenFilePopup from './Popups/OpenFile'
 
 import lean4webConfig from './config/config'
 import './css/Modal.css'
@@ -87,9 +88,10 @@ const FlexibleMenu: FC <{
   loadFromUrl: (url: string, project?: string | undefined) => void,
   setContent: (code: string) => void,
   setLoadUrlOpen: Dispatch<SetStateAction<boolean>>,
-  setLoadZulipOpen: Dispatch<SetStateAction<boolean>>
+  setLoadZulipOpen: Dispatch<SetStateAction<boolean>>,
+  setOpenFileOpen: Dispatch<SetStateAction<boolean>>
 }> = ({isInDropdown = false, setOpenNav, openExample, setOpenExample, openLoad,
-  setOpenLoad, loadFromUrl, setContent, setLoadUrlOpen, setLoadZulipOpen
+  setOpenLoad, loadFromUrl, setContent, setLoadUrlOpen, setLoadZulipOpen, setOpenFileOpen
 }) => {
 
   const loadFileFromDisk = (event: ChangeEvent<HTMLInputElement>) => {
@@ -119,18 +121,25 @@ const FlexibleMenu: FC <{
           }} />
       ))}
     </Dropdown>
-    <Dropdown open={openLoad} setOpen={setOpenLoad} icon={faUpload} text="Load"
-        useOverlay={isInDropdown}
-        onClick={() => {setOpenExample(false); (!isInDropdown && setOpenNav(false))}}>
-      <input id="file-upload" type="file" onChange={loadFileFromDisk} onClick={(ev) => ev.stopPropagation()} />
-      {/* Need `ev.stopPropagation` to prevent closing until the file is loaded.
-          Otherwise the file-upload is destroyed too early. */}
-      <label htmlFor="file-upload" className="nav-link" onClick={(ev) => ev.stopPropagation()} >
-        <FontAwesomeIcon icon={faUpload} /> Load file from disk
-      </label>
-      <NavButton icon={faCloudArrowUp} text="Load from URL" onClick={() => {setLoadUrlOpen(true)}} />
-      <NavButton iconElement={<ZulipIcon />} text="Load Zulip Message" onClick={() => {setLoadZulipOpen(true)}} />
-    </Dropdown>
+    {/* Show Open file… in top bar only (not duplicated in hamburger) */}
+    { !isInDropdown &&
+      <NavButton icon={faUpload} text="Open file…" onClick={() => setOpenFileOpen(true)} />
+    }
+    {/* Show Load options only inside the hamburger dropdown */}
+    { isInDropdown &&
+      <Dropdown open={openLoad} setOpen={setOpenLoad} icon={faCloudArrowUp} text="Load"
+          useOverlay={isInDropdown}
+          onClick={() => {setOpenExample(false); (!isInDropdown && setOpenNav(false))}}>
+        <input id="file-upload" type="file" onChange={loadFileFromDisk} onClick={(ev) => ev.stopPropagation()} />
+        {/* Need `ev.stopPropagation` to prevent closing until the file is loaded.
+            Otherwise the file-upload is destroyed too early. */}
+        <label htmlFor="file-upload" className="nav-link" onClick={(ev) => ev.stopPropagation()} >
+          <FontAwesomeIcon icon={faUpload} /> Load file from disk
+        </label>
+        <NavButton icon={faCloudArrowUp} text="Load from URL" onClick={() => {setLoadUrlOpen(true)}} />
+        <NavButton iconElement={<ZulipIcon />} text="Load Zulip Message" onClick={() => {setLoadZulipOpen(true)}} />
+      </Dropdown>
+    }
   </>
 }
 
@@ -145,7 +154,8 @@ export const Menu: FC <{
   restart?: () => void,
   codeMirror: boolean,
   setCodeMirror: Dispatch<SetStateAction<boolean>>,
-}> = ({code, setContent, project, setProject, setUrl, codeFromUrl, restart, codeMirror, setCodeMirror}) => {
+  initialDir?: string,
+}> = ({code, setContent, project, setProject, setUrl, codeFromUrl, restart, codeMirror, setCodeMirror, initialDir = ''}) => {
   // state for handling the dropdown menus
   const [openNav, setOpenNav] = useState(false)
   const [openExample, setOpenExample] = useState(false)
@@ -158,6 +168,7 @@ export const Menu: FC <{
   const [impressumOpen, setImpressumOpen] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [openFileOpen, setOpenFileOpen] = useState(false)
 
   const { preferences } = useContext(PreferencesContext)
 
@@ -173,6 +184,19 @@ export const Menu: FC <{
     if (project) {
       setProject(project)
     }
+  }
+
+  const openLocalFile = (relativePath: string) => {
+    // Set project explicitly; keep hash minimal; store file in query string
+    const params = new URLSearchParams(window.location.search)
+    const fullPath = relativePath.startsWith(project + '/') ? relativePath : `${project}/${relativePath}`
+    params.set('file', fullPath)
+    const hash = new URLSearchParams()
+    if (project && project !== 'MathlibDemo') { hash.set('project', project) }
+    const newUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}#${hash.toString()}`
+    history.replaceState(undefined, '', newUrl)
+    // trigger a reload to let App pick up ?file change
+    window.location.reload()
   }
 
   const hasImpressum = lean4webConfig.impressum || lean4webConfig.contactDetails
@@ -192,8 +216,11 @@ export const Menu: FC <{
     { preferences.mobile &&
       <NavButton icon={faCode} text={codeMirror ? "Lean" : "Text"} onClick={() => {setCodeMirror(!codeMirror)}}/>
     }
+    { preferences.mobile &&
+      <NavButton icon={faUpload} text="Open file…" onClick={() => setOpenFileOpen(true)} />
+    }
     { !preferences.mobile &&
-      <FlexibleMenu isInDropdown={false}
+        <FlexibleMenu isInDropdown={false}
         setOpenNav={setOpenNav}
         openExample={openExample}
         setOpenExample={setOpenExample}
@@ -202,7 +229,8 @@ export const Menu: FC <{
         loadFromUrl={loadFromUrl}
         setContent={setContent}
         setLoadUrlOpen={setLoadUrlOpen}
-        setLoadZulipOpen={setLoadZulipOpen} />
+          setLoadZulipOpen={setLoadZulipOpen}
+          setOpenFileOpen={setOpenFileOpen} />
     }
     <Dropdown open={openNav} setOpen={setOpenNav} icon={openNav ? faXmark : faBars} onClick={() => {setOpenExample(false); setOpenLoad(false)}}>
       { preferences.mobile &&
@@ -215,10 +243,12 @@ export const Menu: FC <{
           loadFromUrl={loadFromUrl}
           setContent={setContent}
           setLoadUrlOpen={setLoadUrlOpen}
-          setLoadZulipOpen={setLoadZulipOpen} />
+          setLoadZulipOpen={setLoadZulipOpen}
+          setOpenFileOpen={setOpenFileOpen} />
       }
       <NavButton icon={faGear} text="Settings" onClick={() => {setSettingsOpen(true)}} />
       <NavButton icon={faHammer} text="Lean Info" onClick={() => setToolsOpen(true)} />
+      <NavButton icon={faUpload} text="Load file" onClick={() => openLocalFile} />
       <NavButton icon={faArrowRotateRight} text="Restart server" onClick={restart} />
       <NavButton icon={faDownload} text="Save file" onClick={() => save(code)} />
       <NavButton icon={faShield} text={'Privacy policy'} onClick={() => {setPrivacyOpen(true)}} />
@@ -238,5 +268,6 @@ export const Menu: FC <{
       project={project} setProject={setProject} />
     <LoadUrlPopup open={loadUrlOpen} handleClose={() => setLoadUrlOpen(false)} loadFromUrl={loadFromUrl} />
     <LoadZulipPopup open={loadZulipOpen} handleClose={() => setLoadZulipOpen(false)} setContent={setContent} />
+    <OpenFilePopup open={openFileOpen} handleClose={() => setOpenFileOpen(false)} project={project} onOpenFile={openLocalFile} initialDir={initialDir} />
   </div>
 }
