@@ -175,7 +175,7 @@ function App() {
          */
         "workbench.colorTheme": preferences.theme,
         "editor.tabSize": 2,
-        // "editor.rulers": [100],
+        "editor.rulers": [100],
         "editor.lightbulb.enabled": "on",
         "editor.wordWrap": preferences.wordWrap ? "on" : "off",
         "editor.wrappingStrategy": "advanced",
