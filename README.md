@@ -21,6 +21,31 @@ Currently, serious Lean code development and larger projects are considered out-
 
 While `lean4web` looks very similar to VSCode with the [Lean4 extension](https://marketplace.visualstudio.com/items?itemName=leanprover.lean4) installed - and it reuses much of that code - `lean4web` does not claim to be feature complete.
 
+## Features (recent changes)
+
+- Project selection and version info
+  - Choose from configured projects; a “Lean Info” tools popup shows the current `lake-manifest.json` and `lean-toolchain`, with GitHub commit tooltips for dependencies.
+- Examples and loading code
+  - Load curated examples from configured projects. Load code via `#url=…` (GitHub blob links are auto-rewritten to raw) or via `#code`/`#codez`.
+  - When compression is enabled, snippets are encoded using LZ-string in `#codez`.
+- Open local project files (server-side)
+  - Browse and open files from `Projects/<project>/…` using the “Open file…” dialog, or directly via `?file=<project/path/to/File.lean>`.
+  - Changes auto-save (debounced) back to the server when writes are allowed. In production, writes are disabled unless `ALLOW_WRITE=true`.
+- Mobile-friendly editing
+  - Optional plain-text editor overlay (CodeMirror) improves mobile input while Monaco renders Lean info/hover/completions.
+- Lean server backend
+  - The browser connects via WebSocket JSON-RPC to a Lean server process (`lake serve`); in production the process is sandboxed with Bubblewrap.
+
+## Requirements
+
+- Node.js >= 22
+
+## Configuration
+
+- Projects and legal information are configured in `client/src/config/config.tsx`.
+  - Add projects under `Projects/` and reference them in the config file.
+  - The config schema is documented in `client/src/config/docs.tsx`.
+
 ## Contribution
 
 If you experience any problems, or have feature requests, please open an issue here!
