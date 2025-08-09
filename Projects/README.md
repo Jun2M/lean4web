@@ -17,12 +17,12 @@ lake build
 ```
 
 A project added this way can then be accessed online with `https://your.url.com/#project=MyCoolProject`.
-For the project to appear in the Settings, you need to update `client/config/config.json` by adding
+For the project to appear in the Settings, you need to update `client/src/config/config.tsx` by adding
 a new entry `{folder: "MyCoolProject", name: "My Cool Project"}` to `projects`; here `folder` is the
 folder name inside `Projects/` and `name` is the free-text display name.
 
 If you want to add Examples, you should add them as valid Lean files to your project and then expand
-the config entry of your project in `config.json` as follows:
+the config entry of your project in `config.tsx` as follows:
 
 ```
 { "folder": "MyCoolProject`",
