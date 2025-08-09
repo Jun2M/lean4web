@@ -35,6 +35,7 @@ function App() {
   const [loaded, setLoaded] = useState<boolean>(false)
   const [preferences, setPreferences] = useState<IPreferencesContext>(defaultSettings)
   const { width } = useWindowDimensions()
+  const [codeMinWidthPx, setCodeMinWidthPx] = useState<number>(0)
 
   // Lean4monaco options
   const [options, setOptions] = useState<LeanMonacoOptions>({
@@ -191,6 +192,36 @@ function App() {
     }
     setOptions(_options)
   }, [editorRef, project, preferences])
+
+  // Ensure code pane can show at least 100 characters without wrapping by
+  // computing the required minimum pixel width of the editor container.
+  useEffect(() => {
+    if (!editor) { return }
+    const computeMinWidth = () => {
+      try {
+        const layout = editor.getLayoutInfo()
+        // fontInfo contains typicalHalfwidthCharacterWidth (width of a typical ASCII char)
+        const fontInfo = (editor as any).getOption?.(monaco.editor.EditorOption.fontInfo) || {}
+        const charWidth = Number(fontInfo.typicalHalfwidthCharacterWidth) || 8
+        const contentLeft = layout.contentLeft ?? 0 // left gutters (glyph, line numbers, decorations)
+        const vScrollbar = layout.verticalScrollbarWidth ?? 0
+        const padding = 4
+        const required = Math.ceil(contentLeft + charWidth * 100 + vScrollbar + padding)
+        setCodeMinWidthPx(required)
+      } catch (_e) {
+        // Fallback if anything changes in monaco internals
+        setCodeMinWidthPx(900)
+      }
+    }
+    computeMinWidth()
+    const disposeConfig = (editor as any).onDidChangeConfiguration?.(computeMinWidth)
+    const onResize = () => computeMinWidth()
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      disposeConfig?.dispose?.()
+    }
+  }, [editor])
 
   // Setting up the editor and infoview
   useEffect(() => {
@@ -473,6 +504,8 @@ function App() {
         gutterSize={5}
         onDragStart={() => setDragging(true)} onDragEnd={() => setDragging(false)}
         sizes={preferences.mobile ? [50, 50] : [70, 30]}
+        minSize={preferences.mobile ? 0 : [codeMinWidthPx || 0, 100]}
+        expandToMin={!preferences.mobile}
         direction={preferences.mobile ? "vertical" : "horizontal"}
         style={{flexDirection: preferences.mobile ? "column" : "row"}}>
         <div className='codeview-wrapper'
