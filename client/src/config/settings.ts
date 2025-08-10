@@ -49,7 +49,7 @@ const settings: IPreferencesContext = {
   mobile: false,
   saveInLocalStore: false, // should be false unless user gave consent.
   theme: 'Visual Studio Light', // irrelevant as it will be overwritten in App.tsx
-  wordWrap: true
+  wordWrap: false
 }
 
 /**
