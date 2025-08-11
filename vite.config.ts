@@ -7,6 +7,7 @@ import { normalizePath } from 'vite'
 import path from 'node:path'
 import svgr from "vite-plugin-svgr"
 
+const basePath = process.env.VITE_BASE || "/"
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -53,7 +54,7 @@ export default defineConfig({
     })
   ],
   publicDir: "client/public/",
-  base: "/", // setting this to `/leanweb/` means the server is now accessible at `localhost:3000/leanweb`
+  base: basePath, // default '/', use './' for webview builds
   server: {
     port: 3000,
     proxy: {

@@ -1,5 +1,7 @@
 import { Popup } from '../Navigation'
 import { FC, useEffect, useRef, useState } from 'react'
+import lean4webConfig from '../config/config'
+import { getApiBase } from '../utils/Api'
 
 // TODO: Do these interfaces exist somewhere in vscode-lean4?
 // They might need to be updated manually if changes to `lake` occur.
@@ -155,7 +157,7 @@ const ToolsPopup: FC<{
   // Load the new manifest & toolchain
   useEffect(() => {
     if (!project) { return }
-    const urlManifest = `${window.location.origin}/api/manifest/${project}`
+    const urlManifest = `${getApiBase()}/api/manifest/${project}`
     fetch(urlManifest)
     .then((response) => {
       var _lastModified = response.headers.get('Last-Modified')
@@ -169,7 +171,7 @@ const ToolsPopup: FC<{
       console.error(err)
     })
 
-    const urlToolchain = `${window.location.origin}/api/toolchain/${project}`
+    const urlToolchain = `${getApiBase()}/api/toolchain/${project}`
     fetch(urlToolchain)
     .then((response) => {
       response.text().then(toolchain => {

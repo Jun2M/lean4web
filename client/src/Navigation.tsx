@@ -17,6 +17,7 @@ import lean4webConfig from './config/config'
 import './css/Modal.css'
 import './css/Navigation.css'
 import { lookupUrl } from './utils/UrlParsing'
+import { getApiBase } from './utils/Api'
 
 /** A button to appear in the hamburger menu or to navigation bar. */
 export const NavButton: FC<{
@@ -116,7 +117,7 @@ const FlexibleMenu: FC <{
           key={`${proj.name}-${example.name}`}
           icon={faStar} text={example.name}
           onClick={() => {
-            loadFromUrl(`${window.location.origin}/api/examples/${proj.folder}/${example.file}`, proj.folder);
+            loadFromUrl(`${getApiBase()}/api/examples/${proj.folder}/${example.file}`, proj.folder);
             setOpenExample(false)
           }} />
       ))}

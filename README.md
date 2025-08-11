@@ -59,3 +59,17 @@ For new features, it's best to write an issue first to discuss them: For example
 - [User Manual](./doc/Usage.md): Specification of `lean4web` features for the end user.
 - [Installation](./doc/Installation.md): Instructions to install your own instance of `lean4web` on your own server
 - [Development](./doc/Development.md): Instructions to contribute to `lean4web` itself
+
+## VS Code Web Extension
+
+A VS Code Web Extension is included under `extension/` that hosts the Lean web UI in a webview (works in VS Code desktop and vscode.dev).
+
+Build steps:
+
+1. Build the client app:
+   - `npm run build:client`
+2. Copy the client bundle into the extension and build the extension code:
+   - `npm run build:extension`
+3. Run in VS Code (desktop) using the "Run Extension" launch or install the packaged vsix.
+
+Configure the server URL via the setting `leanweb.serverBaseUrl` (and optionally `leanweb.wsBaseUrl`).
