@@ -1,5 +1,7 @@
 import { FC, useEffect, useState } from 'react'
 import { Popup } from '../Navigation'
+import { Entries } from '../utils/Entries'
+import { getApiBase } from '../utils/Api'
 
 interface DirEntry {
   name: string
@@ -26,7 +28,7 @@ const OpenFilePopup: FC<{
 
   useEffect(() => {
     if (!open || project === undefined || project === null) return
-    fetch(`/api/list?project=${encodeURIComponent(project)}&dir=${encodeURIComponent(dir)}`)
+    fetch(`${getApiBase()}/api/list?project=${encodeURIComponent(project)}&dir=${encodeURIComponent(dir)}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()

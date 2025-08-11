@@ -15,6 +15,8 @@ import { Menu } from './Navigation'
 import { PreferencesContext } from './Popups/Settings'
 import { Entries } from './utils/Entries'
 import { fixedEncodeURIComponent, formatArgs, lookupUrl, parseArgs } from './utils/UrlParsing'
+import { getApiBase } from './utils/Api'
+import { getWsBase } from './utils/Api'
 import { useWindowDimensions } from './utils/WindowWidth'
 
 // CSS
@@ -162,8 +164,8 @@ function App() {
     if (!project) { return }
     console.log('[Lean4web] Update lean4monaco options')
 
-    var socketUrl = ((window.location.protocol === "https:") ? "wss://" : "ws://") +
-      window.location.host + "/websocket/" + project
+    const wsBase = getWsBase()
+    var socketUrl = `${wsBase}/websocket/${project}`
     console.log(`[Lean4web] Socket url is ${socketUrl}`)
     var _options: LeanMonacoOptions = {
       websocket: {url: socketUrl},
@@ -345,7 +347,7 @@ function App() {
   useEffect(() => {
     if (!editor || !project || !currentFile) { return }
     console.debug(`[Lean4web] Loading local file ${currentFile} in project ${project}`)
-    fetch(`/api/file?project=${encodeURIComponent(project)}&file=${encodeURIComponent(currentFile)}`)
+    fetch(`${getApiBase()}/api/file?project=${encodeURIComponent(project)}&file=${encodeURIComponent(currentFile)}`)
       .then((response) => {
         if (!response.ok) { throw new Error(`HTTP ${response.status}`) }
         return response.text()
@@ -438,7 +440,7 @@ function App() {
     // Save only if content changed
     if (serverCode !== null && code === serverCode) { return }
     const timeout = setTimeout(() => {
-      fetch('/api/save', {
+      fetch(`${getApiBase()}/api/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project, file: currentFile, content: code })

@@ -1,0 +1,44 @@
+{
+  "name": "leanweb-vscode",
+  "displayName": "Lean Web",
+  "description": "Run Lean4web UI inside VS Code (desktop or web) with a remote Lean server.",
+  "version": "0.1.0",
+  "publisher": "your-publisher",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "icon": "media/icon.png",
+  "contributes": {
+    "commands": [
+      { "command": "leanweb.open", "title": "Lean Web: Open" }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Lean Web",
+      "properties": {
+        "leanweb.serverBaseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Base HTTP(S) URL of your Lean server providing /api and /websocket endpoints. If empty, will try to use the current host."
+        },
+        "leanweb.wsBaseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Base WS(S) URL (optional). If empty, derived from serverBaseUrl (http->ws)."
+        }
+      }
+    }
+  },
+  "activationEvents": ["onCommand:leanweb.open"],
+  "browser": "./dist/extension.js",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsc -p ./tsconfig.json",
+    "watch": "tsc -w -p ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.8.2"
+  }
+}
